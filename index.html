@@ -175,7 +175,10 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
     // Numeric → filter
     rows.forEach(row => {
       const text = row.innerText;
-      row.classList.toggle("hide", !text.includes(val));
+      // row.classList.toggle("hide", !text.includes(val));
+      const numbers = text.match(/\b\d+\b/g) || [];
+      const match = numbers.some(n => n === val);
+      row.classList.toggle("hide", !match);
     });
   } else {
     // // Text → analyse new word
