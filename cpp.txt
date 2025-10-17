@@ -1,0 +1,84 @@
+
+int main()
+{
+  std::map<char, long> letter_map;
+  // nieve mapping
+//for (char letter = 'a'; letter <= 'z'; letter++) {
+//  letter_map.insert({letter, letter-96});
+//  printf("%c : %d\n", letter, letter-96);
+//}
+//for (char letter = 'A'; letter <= 'Z'; letter++) {
+//  letter_map.insert({letter, letter-64+26});
+//  printf("%c : %d\n", letter, letter-64+26);
+//}
+  
+  // pythagorean table mapping
+//for (char letter = 'a'; letter <= 'z'; letter++) {
+//  long letter_score = ((letter-97) % 9) + 1;
+//  letter_map.insert({letter, letter_score});
+//  printf("%c : %d\n", letter, letter_score);
+//}
+
+  // ASCII mapping
+//for (char letter = 'a'; letter <= 'z'; letter++) {
+//  long letter_score = letter;
+//  letter_map.insert({letter, letter_score});
+//  printf("%c : %d\n", letter, letter_score);
+//}
+//for (char letter = 'A'; letter <= 'Z'; letter++) {
+//  long letter_score = letter;
+//  letter_map.insert({letter, letter_score});
+//  printf("%c : %d\n", letter, letter_score);
+//}
+
+  // exponential mapping
+  long i=1;
+  long e=1;
+  for (char letter = 'a'; letter <= 'z'; letter++) {
+
+    if (10 == i) {
+      i=1;
+      e *= 10;
+    }
+
+    long letter_score = i*e;
+    letter_map.insert({letter, letter_score});
+    printf("%c : %d\n", letter, letter_score);
+
+    i++;
+  }
+
+  while (true) {
+    std::string analyse_word;
+    std::cin >> analyse_word;
+    long stat_sum = 0;
+    for (char c : analyse_word) {
+    
+      auto it = letter_map.find(c);
+      stat_sum += it->second;
+    
+      printf("%c : %.2d\n", c, it->second);
+    }
+    printf("\nword chars sum : %d\n", stat_sum);
+    
+
+
+    auto is_master_num = [](long num) -> bool { return 11 == num || 22 == num || 33 == num; };
+
+    long stat_sum_tmp = stat_sum;
+    long stat_sum_sum = stat_sum;
+
+    while (stat_sum_sum >= 10 && false == is_master_num(stat_sum_sum)) {
+
+      stat_sum_tmp = stat_sum_sum;
+      stat_sum_sum = 0;
+
+      while (stat_sum_tmp > 0) {
+
+        stat_sum_sum += stat_sum_tmp % 10;
+        stat_sum_tmp /= 10;
+      }
+      printf("word chars sum sum : %d\n", stat_sum_sum);
+    }
+  }
+}

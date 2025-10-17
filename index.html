@@ -1,12 +1,98 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport"
-          content="width=device-width,initial-scale=1"/>
-    <title>Hello world</title>
-  </head>
-  <body>
-    <h1>Hello world</h1>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Value Calculator</title>
+<style>
+  body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 2rem; }
+  .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  input, select, button { font-size: 1rem; padding: .5rem; margin-top: .5rem; width: 100%; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid #ccc; padding: .4rem; text-align: center; }
+  .result { margin-top: 1rem; font-weight: bold; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Word Value Calculator</h2>
+  <label>Enter a word:</label>
+  <input type="text" id="wordInput" placeholder="Type a word...">
+  
+  <label>Select mapping method:</label>
+  <select id="mappingType">
+    <option value="naive">Naive Mapping</option>
+    <option value="pythagorean">Pythagorean Table</option>
+    <option value="ascii">ASCII Mapping</option>
+    <option value="exponential">Exponential Mapping</option>
+  </select>
+
+  <button onclick="calculate()">Calculate</button>
+
+  <div id="output"></div>
+</div>
+
+<script>
+function buildMap(type) {
+  const map = {};
+  if (type === "naive") {
+    for (let i = 0; i < 26; i++) {
+      map[String.fromCharCode(97 + i)] = i + 1;
+      map[String.fromCharCode(65 + i)] = i + 27;
+    }
+  } 
+  else if (type === "pythagorean") {
+    for (let i = 0; i < 26; i++) {
+      map[String.fromCharCode(97 + i)] = (i % 9) + 1;
+      map[String.fromCharCode(65 + i)] = (i % 9) + 1;
+    }
+  } 
+  else if (type === "ascii") {
+    for (let i = 0; i < 26; i++) {
+      map[String.fromCharCode(97 + i)] = 97 + i;
+      map[String.fromCharCode(65 + i)] = 65 + i;
+    }
+  } 
+  else if (type === "exponential") {
+    let i = 1, e = 1;
+    for (let letter = 97; letter <= 122; letter++) {
+      if (i === 10) { i = 1; e *= 10; }
+      map[String.fromCharCode(letter)] = i * e;
+      i++;
+    }
+  }
+  return map;
+}
+
+function reduceToSingle(num) {
+  const isMaster = (n) => n === 11 || n === 22 || n === 33;
+  let sum = num;
+  while (sum >= 10 && !isMaster(sum)) {
+    sum = sum.toString().split('').reduce((a,b)=>a+ +b,0);
+  }
+  return sum;
+}
+
+function calculate() {
+  const word = document.getElementById('wordInput').value.trim();
+  const method = document.getElementById('mappingType').value;
+  const map = buildMap(method);
+  
+  let output = `<table><tr><th>Letter</th><th>Value</th></tr>`;
+  let total = 0;
+  
+  for (const c of word) {
+    const val = map[c] ?? 0;
+    output += `<tr><td>${c}</td><td>${val}</td></tr>`;
+    total += val;
+  }
+  
+  const reduced = reduceToSingle(total);
+  output += `</table><div class="result">Total: ${total}</div>`;
+  output += `<div class="result">Reduced (Numerology-style): ${reduced}</div>`;
+  
+  document.getElementById('output').innerHTML = output;
+}
+</script>
+</body>
 </html>
