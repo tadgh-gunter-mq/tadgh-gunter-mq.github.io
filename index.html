@@ -3,96 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Word Value Calculator</title>
+<title>Reduction analysis tool</title>
 <style>
-  body { font-family: system-ui, sans-serif; background: #f5f5f5; padding: 2rem; }
-  .container { max-width: 600px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-  input, select, button { font-size: 1rem; padding: .5rem; margin-top: .5rem; width: 100%; }
-  table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-  th, td { border: 1px solid #ccc; padding: .4rem; text-align: center; }
-  .result { margin-top: 1rem; font-weight: bold; }
+  body { font-family: system-ui, sans-serif; background: #f4f4f4; padding: 2rem; }
+  .container { max-width: 1150px; margin: auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h2 { margin-top: 0; }
+  input[type="file"], input[type="text"] { width: 100%; margin: .5rem 0; padding: .5rem; font-size: 1rem; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: .9rem; }
+  th, td { border: 1px solid #ccc; padding: .4rem; text-align: center; vertical-align: top; }
+  th { background: #eee; }
+  small { color: #666; font-size: .75rem; display: block; margin-top: .25rem; }
+  tr.hide { display: none; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h2>Word Value Calculator</h2>
-  <label>Enter a word:</label>
-  <input type="text" id="wordInput" placeholder="Type a word...">
+  <h2>Reduction analysis tool</h2>
   
-  <label>Select mapping method:</label>
-  <select id="mappingType">
-    <option value="naive">Naive Mapping</option>
-    <option value="pythagorean">Pythagorean Table</option>
-    <option value="ascii">ASCII Mapping</option>
-    <option value="exponential">Exponential Mapping</option>
-  </select>
-
-  <button onclick="calculate()">Calculate</button>
-
-  <div id="output"></div>
+  <label>Upload CSV (one word per line):</label>
+  <input type="file" id="csvFile" accept=".csv">
+  
+  <label>Search or Analyse:</label>
+  <input type="text" id="searchInput" placeholder="Type a number to filter, or a word to analyse...">
+  
+  <table id="resultsTable">
+    <thead>
+      <tr>
+        <th rowspan="2">Word</th>
+        <th colspan="3">Naive<br><small>a=1...z=26 && A=27...G=33...Z=52</small></th>
+        <th rowspan="2">Pythagorean<br><small>a=1...i=9 && j=1...r=9 && s=1...z=8</small></th>
+        <th colspan="3">ASCII<br><small>a=97...z=122 && A=65...Z=90</small></th>
+        <th rowspan="2">Exponential<br><small>a=1...i=9 && j=10...r=90 && s=100...z=800</small></th>
+      </tr>
+      <tr>
+        <th>lower case</th><th>UPPER CASE</th><th>Title Case</th>
+        <th>lower case</th><th>UPPER CASE</th><th>Title Case</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 </div>
 
 <script>
-function buildMap(type) {
-  const map = {};
-  if (type === "naive") {
-    for (let i = 0; i < 26; i++) {
-      map[String.fromCharCode(97 + i)] = i + 1;
-      map[String.fromCharCode(65 + i)] = i + 27;
-    }
-  } 
-  else if (type === "pythagorean") {
-    for (let i = 0; i < 26; i++) {
-      map[String.fromCharCode(97 + i)] = (i % 9) + 1;
-      map[String.fromCharCode(65 + i)] = (i % 9) + 1;
-    }
-  } 
-  else if (type === "ascii") {
-    for (let i = 0; i < 26; i++) {
-      map[String.fromCharCode(97 + i)] = 97 + i;
-      map[String.fromCharCode(65 + i)] = 65 + i;
-    }
-  } 
-  else if (type === "exponential") {
-    let i = 1, e = 1;
-    for (let letter = 97; letter <= 122; letter++) {
-      if (i === 10) { i = 1; e *= 10; }
-      map[String.fromCharCode(letter)] = i * e;
-      i++;
-    }
+// --- Mapping builders ---
+function buildMaps() {
+  const maps = { naiveLower: {}, naiveUpper: {}, asciiLower: {}, asciiUpper: {}, pyth: {}, exp: {} };
+
+  // Naive
+  for (let i = 0; i < 26; i++) {
+    maps.naiveLower[String.fromCharCode(97 + i)] = i + 1;
+    maps.naiveUpper[String.fromCharCode(65 + i)] = i + 27;
   }
-  return map;
+
+  // Pythagorean
+  for (let i = 0; i < 26; i++) {
+    maps.pyth[String.fromCharCode(97 + i)] = (i % 9) + 1;
+    maps.pyth[String.fromCharCode(65 + i)] = (i % 9) + 1;
+  }
+
+  // ASCII
+  for (let i = 0; i < 26; i++) {
+    maps.asciiLower[String.fromCharCode(97 + i)] = 97 + i;
+    maps.asciiUpper[String.fromCharCode(65 + i)] = 65 + i;
+  }
+
+  // Exponential
+  let i = 1, e = 1;
+  for (let letter = 97; letter <= 122; letter++) {
+    if (i === 10) { i = 1; e *= 10; }
+    maps.exp[String.fromCharCode(letter)] = i * e;
+    i++;
+  }
+
+  return maps;
 }
 
-function reduceToSingle(num) {
-  const isMaster = (n) => n === 11 || n === 22 || n === 33;
-  let sum = num;
-  while (sum >= 10 && !isMaster(sum)) {
-    sum = sum.toString().split('').reduce((a,b)=>a+ +b,0);
+const maps = buildMaps();
+
+// --- Utilities ---
+function numerologyReduce(num) {
+  const steps = [num];
+  const isMaster = n => [11,22,33].includes(n);
+  let current = num;
+  while (current >= 10 && !isMaster(current)) {
+    current = current.toString().split('').reduce((a,b)=>a+ +b,0);
+    steps.push(current);
+  }
+  return steps.join(" → ");
+}
+
+function computeScore(word, map, caseType="lower") {
+  let sum = 0;
+  for (const c of word) {
+    if (map[c]) sum += map[c];
   }
   return sum;
 }
 
-function calculate() {
-  const word = document.getElementById('wordInput').value.trim();
-  const method = document.getElementById('mappingType').value;
-  const map = buildMap(method);
-  
-  let output = `<table><tr><th>Letter</th><th>Value</th></tr>`;
-  let total = 0;
-  
-  for (const c of word) {
-    const val = map[c] ?? 0;
-    output += `<tr><td>${c}</td><td>${val}</td></tr>`;
-    total += val;
+// --- Row generator ---
+function generateRow(word) {
+  const lowerWord = word.toLowerCase();
+  const upperWord = word.toUpperCase();
+  const titleWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+
+  // Naive
+  const naiveLower = computeScore(lowerWord, maps.naiveLower);
+  const naiveUpper = computeScore(upperWord, maps.naiveUpper);
+  let naiveTitle = 0;
+  for (const c of titleWord) {
+    naiveTitle += maps.naiveUpper[c] || maps.naiveLower[c] || 0;
   }
-  
-  const reduced = reduceToSingle(total);
-  output += `</table><div class="result">Total: ${total}</div>`;
-  output += `<div class="result">Reduced (Numerology-style): ${reduced}</div>`;
-  
-  document.getElementById('output').innerHTML = output;
+
+  // ASCII
+  const asciiLower = computeScore(lowerWord, maps.asciiLower);
+  const asciiUpper = computeScore(upperWord, maps.asciiUpper);
+  let asciiTitle = 0;
+  for (const c of titleWord) {
+    asciiTitle += maps.asciiUpper[c] || maps.asciiLower[c] || 0;
+  }
+
+  // Pythagorean
+  let pyth = 0;
+  for (const c of word) pyth += maps.pyth[c] || 0;
+
+  // Exponential
+  let exp = 0;
+  for (const c of word.toLowerCase()) exp += maps.exp[c] || 0;
+
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td>${word}</td>
+    <td>${naiveLower}<br><small>${numerologyReduce(naiveLower)}</small></td>
+    <td>${naiveUpper}<br><small>${numerologyReduce(naiveUpper)}</small></td>
+    <td>${naiveTitle}<br><small>${numerologyReduce(naiveTitle)}</small></td>
+    <td>${pyth}<br><small>${numerologyReduce(pyth)}</small></td>
+    <td>${asciiLower}<br><small>${numerologyReduce(asciiLower)}</small></td>
+    <td>${asciiUpper}<br><small>${numerologyReduce(asciiUpper)}</small></td>
+    <td>${asciiTitle}<br><small>${numerologyReduce(asciiTitle)}</small></td>
+    <td>${exp}<br><small>${numerologyReduce(exp)}</small></td>
+  `;
+  return row;
 }
+
+// --- CSV upload handler ---
+document.getElementById("csvFile").addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.split(/\r?\n/).filter(Boolean);
+    const tbody = document.querySelector("#resultsTable tbody");
+    tbody.innerHTML = "";
+
+    lines.forEach((word) => {
+      tbody.appendChild(generateRow(word.trim()));
+    });
+  };
+  reader.readAsText(file);
+});
+
+// --- Search or Analyse ---
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  const val = e.target.value.trim();
+  const tbody = document.querySelector("#resultsTable tbody");
+  const rows = tbody.querySelectorAll("tr");
+
+  if (!val) { rows.forEach(r => r.classList.remove("hide")); return; }
+
+  if (/^\d+$/.test(val)) {
+    // Numeric → filter
+    rows.forEach(row => {
+      const text = row.innerText;
+      row.classList.toggle("hide", !text.includes(val));
+    });
+  } else {
+    // // Text → analyse new word
+    // const existing = [...rows].find(r => r.firstChild.textContent.toLowerCase() === val.toLowerCase());
+    // if (!existing) {
+    //   const newRow = generateRow(val);
+    //   tbody.prepend(newRow);
+    // }
+
+    // Text → analyse new word (single dynamic row)
+    let liveRow = [...rows].find(r => r.id === "live-analysis-row");
+    if (!liveRow) {
+      liveRow = generateRow(val);
+      liveRow.id = "live-analysis-row";
+      tbody.prepend(liveRow);
+    } else {
+      const newRow = generateRow(val);
+      liveRow.replaceWith(newRow);
+      newRow.id = "live-analysis-row";
+      liveRow = newRow;
+    }
+  }
+});
 </script>
 </body>
 </html>
