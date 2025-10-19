@@ -30,7 +30,7 @@
     <thead>
       <tr>
         <th rowspan="2">Word</th>
-        <th colspan="3">Naive<br><small>a=1...z=26 && A=27...G=33...Z=52</small></th>
+        <th colspan="3">Simple<br><small>a=1...z=26 && A=27...G=33...Z=52</small></th>
         <th rowspan="2">Pythagorean<br><small>a=1...i=9 && j=1...r=9 && s=1...z=8</small></th>
         <th colspan="3">ASCII<br><small>a=97...z=122 && A=65...Z=90</small></th>
         <th rowspan="2">Exponential<br><small>a=1...i=9 && j=10...r=90 && s=100...z=800</small></th>
@@ -47,12 +47,12 @@
 <script>
 // --- Mapping builders ---
 function buildMaps() {
-  const maps = { naiveLower: {}, naiveUpper: {}, asciiLower: {}, asciiUpper: {}, pyth: {}, exp: {} };
+  const maps = { simpleLower: {}, simpleUpper: {}, asciiLower: {}, asciiUpper: {}, pyth: {}, exp: {} };
 
-  // Naive
+  // Simple
   for (let i = 0; i < 26; i++) {
-    maps.naiveLower[String.fromCharCode(97 + i)] = i + 1;
-    maps.naiveUpper[String.fromCharCode(65 + i)] = i + 27;
+    maps.simpleLower[String.fromCharCode(97 + i)] = i + 1;
+    maps.simpleUpper[String.fromCharCode(65 + i)] = i + 27;
   }
 
   // Pythagorean
@@ -104,14 +104,14 @@ function computeScore(word, map, caseType="lower") {
 function generateRow(word) {
   const lowerWord = word.toLowerCase();
   const upperWord = word.toUpperCase();
-  const titleWord = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  const titleWord = str.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 
-  // Naive
-  const naiveLower = computeScore(lowerWord, maps.naiveLower);
-  const naiveUpper = computeScore(upperWord, maps.naiveUpper);
-  let naiveTitle = 0;
+  // Simple
+  const simpleLower = computeScore(lowerWord, maps.simpleLower);
+  const simpleUpper = computeScore(upperWord, maps.simpleUpper);
+  let simpleTitle = 0;
   for (const c of titleWord) {
-    naiveTitle += maps.naiveUpper[c] || maps.naiveLower[c] || 0;
+    simpleTitle += maps.simpleUpper[c] || maps.simpleLower[c] || 0;
   }
 
   // ASCII
@@ -133,9 +133,9 @@ function generateRow(word) {
   const row = document.createElement("tr");
   row.innerHTML = `
     <td>${word}</td>
-    <td>${naiveLower}<br><small>${numerologyReduce(naiveLower)}</small></td>
-    <td>${naiveUpper}<br><small>${numerologyReduce(naiveUpper)}</small></td>
-    <td>${naiveTitle}<br><small>${numerologyReduce(naiveTitle)}</small></td>
+    <td>${simpleLower}<br><small>${numerologyReduce(simpleLower)}</small></td>
+    <td>${simpleUpper}<br><small>${numerologyReduce(simpleUpper)}</small></td>
+    <td>${simpleTitle}<br><small>${numerologyReduce(simpleTitle)}</small></td>
     <td>${pyth}<br><small>${numerologyReduce(pyth)}</small></td>
     <td>${asciiLower}<br><small>${numerologyReduce(asciiLower)}</small></td>
     <td>${asciiUpper}<br><small>${numerologyReduce(asciiUpper)}</small></td>
@@ -170,7 +170,7 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
   const rows = tbody.querySelectorAll("tr");
 
   if (!val) { rows.forEach(r => r.classList.remove("hide")); return; }
-
+  
   if (/^\d+$/.test(val)) {
     // Numeric → filter
     rows.forEach(row => {
