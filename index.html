@@ -104,7 +104,7 @@ function computeScore(word, map, caseType="lower") {
 function generateRow(word) {
   const lowerWord = word.toLowerCase();
   const upperWord = word.toUpperCase();
-  const titleWord = str.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+  const titleWord = word.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 
   // Simple
   const simpleLower = computeScore(lowerWord, maps.simpleLower);
